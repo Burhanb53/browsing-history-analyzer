@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser History Analysis Results</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #4a6fa5;
+        --secondary-color: #6c757d;
+        --light-bg: #f8f9fa;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      body {
+        background-color: var(--light-bg);
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .container {
+        padding: 20px;
+        max-width: 1400px;
+      }
+
+      .header-section {
+        background: white;
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 25px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        text-align: center;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.3s ease;
+        height: 100%;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        color: var(--secondary-color);
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 450px;
+        margin-bottom: 30px;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding-bottom: 50px;
+      }
+
+      .card-section {
+        background: white;
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 20px;
+        margin-bottom: 30px;
+        height: 100%;
+      }
+
+      .top-sites-list {
+        list-style-type: none;
+        padding-left: 0;
+        max-height: 320px;
+        overflow-y: auto;
+      }
+
+      .top-sites-list li {
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        transition: background-color 0.2s;
+      }
+
+      .top-sites-list li:hover {
+        background-color: #f8f9fa;
+      }
+
+      .top-sites-list li:last-child {
+        border-bottom: none;
+      }
+
+      .site-count {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .table-responsive {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .table thead {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+      }
+
+      .markdown-content {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      .markdown-content h1,
+      .markdown-content h2,
+      .markdown-content h3 {
+        margin-top: 1.2em;
+        margin-bottom: 0.6em;
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .markdown-content ul {
+        padding-left: 1.8em;
+      }
+
+      .markdown-content li {
+        margin-bottom: 0.6em;
+      }
+
+      .back-btn {
+        margin-bottom: 25px;
+        font-weight: 500;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 50px;
+        font-size: 1.2rem;
+        color: var(--secondary-color);
+      }
+
+      .scrollable-raw-data {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      @media (max-width: 768px) {
+        .chart-container {
+          height: 300px;
+        }
+
+        .stat-value {
+          font-size: 2rem;
+        }
+      }
+
+      /* Add to your existing styles */
+      .chart-loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+      }
+
+      .stat-value .spinner-border {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-width: 0.2em;
+      }
+
+      /* Loading state for tables */
+      .table-loading {
+        position: relative;
+        min-height: 100px;
+      }
+
+      .table-loading::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 2rem;
+        height: 2rem;
+        border: 0.25em solid rgba(0, 0, 0, 0.1);
+        border-top-color: #4a6fa5;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: translate(-50%, -50%) rotate(360deg);
+        }
+      }
+
+      /* Spinner Animation */
+      @keyframes spin {
+        to {
+          transform: translate(-50%, -50%) rotate(360deg);
+        }
+      }
+
+      /* Common Loader Styles */
+      .loader-spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #4a6fa5; /* Updated loader color */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 10;
+      }
+
+      /* Reusable Sizes */
+      .loader-sm {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-width: 0.2em;
+      }
+
+      .loader-md {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-width: 0.3em;
+      }
+
+      .loader-lg {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-width: 0.4em;
+      }
+
+      /* Specific Container Styles */
+      .loading-container {
+        position: relative;
+        min-height: 200px;
+      }
+
+      .chart-loader,
+      .card-loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        text-align: center;
+      }
+
+      .card-loader {
+        width: 100%;
+      }
+
+      /* Stat Value Spinner */
+      .stat-value .spinner-border {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-width: 0.1em;
+        color: #4a6fa5; /* Bootstrap-style spinner color */
+      }
+
+      /* Table Loader */
+      .table-loading {
+        position: relative;
+        min-height: 100px;
+      }
+
+      .table-loading::after {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 2rem;
+        height: 2rem;
+        transform: translate(-50%, -50%);
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #4a6fa5; /* Updated loader color */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 10;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 3rem;
+        padding: 1.5rem 0;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        font-size: 0.875rem;
+        color: var(--text-muted);
+      }
+
+      .footer-content {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .footer-separator {
+        color: rgba(0, 0, 0, 0.2);
+      }
+
+      .footer-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        transition: color 0.2s ease;
+      }
+
+      .footer-link:hover {
+        color: var(--primary-hover);
+        text-decoration: underline;
+      }
+
+      .footer-icon {
+        transition: transform 0.2s ease;
+      }
+
+      .footer-link:hover .footer-icon {
+        transform: translate(2px, -2px);
+      }
+
+      @media (max-width: 480px) {
+        .footer {
+          padding: 1rem 0;
+        }
+
+        .footer-content {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .footer-separator {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <button
+        class="btn btn-secondary back-btn"
+        onclick="window.location.href='/'"
+      >
+        &larr; Upload New File
+      </button>
+
+      <div class="header-section">
+        <h1 class="text-center mb-3">Browser History Analysis</h1>
+        <p class="text-center text-muted mb-0" id="analysis-period"></p>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="row mb-4 g-4">
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card">
+            <div class="stat-value" id="total-visits">0</div>
+            <div class="stat-label">Total Visits</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card">
+            <div class="stat-value" id="unique-sites">0</div>
+            <div class="stat-label">Unique Sites</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card">
+            <div class="stat-value" id="first-visit">-</div>
+            <div class="stat-label">First Visit</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card">
+            <div class="stat-value" id="last-visit">-</div>
+            <div class="stat-label">Last Visit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Sites Row -->
+      <div class="row mb-4 g-4">
+        <div class="col-lg-6">
+          <div class="chart-container loading-container">
+            <div class="chart-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading chart data...</p>
+            </div>
+            <h4 class="mb-3">Most Visited Sites</h4>
+            <canvas id="topSitesChart"></canvas>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card-section loading-container">
+            <div class="card-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading site data...</p>
+            </div>
+            <h4 class="mb-3">Top 10 Sites List</h4>
+            <ol class="top-sites-list" id="topSitesList"></ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Patterns Row -->
+      <div class="row mb-4 g-4">
+        <div class="col-lg-6">
+          <div class="chart-container loading-container">
+            <div class="chart-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading hourly data...</p>
+            </div>
+            <h4 class="mb-3">Activity by Hour</h4>
+            <canvas id="hourlyActivityChart"></canvas>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="chart-container loading-container">
+            <div class="chart-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading daily data...</p>
+            </div>
+            <h4 class="mb-3">Activity by Day</h4>
+            <canvas id="dailyActivityChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories Row -->
+      <div class="row mb-4 g-4">
+        <div class="col-lg-6">
+          <div class="chart-container loading-container">
+            <div class="chart-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading categories...</p>
+            </div>
+            <h4 class="mb-3">Content Categories</h4>
+            <canvas id="categoriesChart"></canvas>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card-section loading-container">
+            <div class="card-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading category data...</p>
+            </div>
+            <h4 class="mb-3">Visits by Category</h4>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Category</th>
+                    <th>Visits</th>
+                    <th>Percentage</th>
+                  </tr>
+                </thead>
+                <tbody id="categoriesTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Visits Chart -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="chart-container loading-container">
+            <div class="chart-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading daily visits data...</p>
+            </div>
+            <h4 class="mb-3">Daily Visits Trend</h4>
+            <canvas id="dailyVisitsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Analysis Section -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card-section loading-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h4 class="mb-0">AI Analysis</h4>
+              <button
+                id="regenerateAiAnalysis"
+                class="btn btn-sm btn-outline-primary"
+              >
+                <i class="bi bi-arrow-repeat"></i> Generate Again
+              </button>
+            </div>
+            <div class="card-loader">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Generating AI insights...</p>
+            </div>
+            <div id="aiAnalysisContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Raw Data Section -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card-section loading-container">
+            <!-- Loader -->
+            <div class="card-loader mt-5">
+              <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Preparing raw data...</p>
+            </div>
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h4 class="mb-0">Raw Data Preview</h4>
+              <button class="btn btn-sm btn-outline-primary" id="toggleRawData">
+                Show Data
+              </button>
+            </div>
+
+            <!-- Raw Data Table -->
+            <div
+              class="scrollable-raw-data"
+              id="rawDataContainer"
+              style="display: none"
+            >
+              <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Time</th>
+                      <th>Title</th>
+                      <th>Domain</th>
+                      <th>Visits</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rawDataTable"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Pagination (Separate from loader and scrollable section) -->
+            <div id="rawDataPagination" class="mt-3" style="display: none">
+              <div class="row">
+                <div class="col-4 text-start">
+                  <button
+                    id="prevPageBtn"
+                    class="btn btn-outline-primary btn-sm"
+                  >
+                    <i class="bi bi-chevron-left"></i> Previous
+                  </button>
+                </div>
+                <div class="col-4 text-center">
+                  <span id="currentPageInfo" class="text-muted"
+                    >Page 1 of 1</span
+                  >
+                </div>
+                <div class="col-4 text-end">
+                  <button
+                    id="nextPageBtn"
+                    class="btn btn-outline-primary btn-sm"
+                  >
+                    Next <i class="bi bi-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-content">
+        <span class="footer-text">Analyzer Tool v1.0</span>
+        <span class="footer-separator">•</span>
+        <span class="footer-credit">
+          Developed by
+          <a
+            href="https://github.com/Burhanb53"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="footer-link"
+          >
+            Burhanuddin Bohra
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="footer-icon"
+            >
+              <path
+                d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+              ></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </a>
+        </span>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Function to hide all loaders
+        function hideLoaders() {
+          document
+            .querySelectorAll(".chart-loader, .card-loader")
+            .forEach((loader) => {
+              loader.style.display = "none";
+            });
+          document
+            .querySelectorAll(".loading-container")
+            .forEach((container) => {
+              container.classList.remove("loading-container");
+            });
+        }
+
+        // Show main loading state
+        const loading = document.createElement("div");
+        loading.className = "loading";
+        loading.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Analyzing your browsing history...</p>
+            `;
+        document.querySelector(".container").appendChild(loading);
+
+        // Show loaders in all stat cards
+        const statCards = document.querySelectorAll(".stat-card .stat-value");
+        statCards.forEach((card) => {
+          card.innerHTML = `<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>`;
+        });
+
+        // Show raw data section immediately
+        const rawDataContainer = document.getElementById("rawDataContainer");
+        rawDataContainer.style.display = "block";
+        document.getElementById("toggleRawData").textContent = "Hide Data";
+
+        // Get filepath from URL or session
+        const urlParams = new URLSearchParams(window.location.search);
+        const filepath = urlParams.get("filepath");
+
+        fetch(
+          `/api/analytics${
+            filepath ? `?filepath=${encodeURIComponent(filepath)}` : ""
+          }`
+        )
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.status === "error") {
+              throw new Error(data.message);
+            }
+
+            // Remove main loading
+            document.querySelector(".loading")?.remove();
+
+            // Hide all loaders
+            hideLoaders();
+
+            // Update stats with actual data
+            updateStats(data.data);
+
+            // Create charts
+            createCharts(data.data);
+
+            // Update other UI elements
+            updateAdditionalElements(data.data);
+
+            // Load AI Analysis (initial load)
+            loadAIAnalysis();
+
+            // Load raw data immediately
+            loadRawDataPreview();
+          })
+          .catch((error) => {
+            // ... (keep your existing error handling)
+          });
+
+        // Add event listener for the regenerate button
+        document
+          .getElementById("regenerateAiAnalysis")
+          ?.addEventListener("click", function () {
+            loadAIAnalysis();
+          });
+
+        // Separate function for loading AI analysis (data layer)
+        function loadAIAnalysis() {
+          const urlParams = new URLSearchParams(window.location.search);
+          const filepath = urlParams.get("filepath");
+          const container = document.getElementById("aiAnalysisContainer");
+          const regenerateBtn = document.getElementById("regenerateAiAnalysis");
+
+          // Show loading state
+          if (container) container.innerHTML = "";
+
+          // Disable and show loading state on button
+          if (regenerateBtn) {
+            regenerateBtn.disabled = true;
+            regenerateBtn.innerHTML = `
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Generating...
+      `;
+          }
+
+          fetch(
+            `/api/ai_analysis${
+              filepath ? `?filepath=${encodeURIComponent(filepath)}` : ""
+            }`
+          )
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              if (data.status === "error") {
+                throw new Error(data.message);
+              }
+              updateAIAnalysis(data.data.ai_analysis);
+            })
+            .catch((error) => {
+              console.error("AI Analysis Error:", error);
+              updateAIAnalysis(null, error.message);
+            })
+            .finally(() => {
+              if (regenerateBtn) {
+                regenerateBtn.disabled = false;
+                regenerateBtn.innerHTML = `<i class="bi bi-arrow-repeat"></i> Generate Again`;
+              }
+            });
+        }
+
+        // Separate function for updating UI (presentation layer)
+        function updateAIAnalysis(analysis, errorMessage = null) {
+          const container = document.getElementById("aiAnalysisContainer");
+          const loader = container
+            ?.closest(".card-section")
+            ?.querySelector(".card-loader");
+
+          // Show loader while we prepare the content
+          if (loader) loader.style.display = "flex";
+
+          setTimeout(() => {
+            if (errorMessage) {
+              container.innerHTML = `
+          <div class="alert alert-danger">
+            <strong>Error generating AI analysis:</strong> ${errorMessage}
+          </div>
+        `;
+            } else if (analysis) {
+              container.innerHTML = `
+          <div class="markdown-content">
+            ${marked.parse(analysis)}
+          </div>
+        `;
+            } else {
+              container.innerHTML = `
+          <div class="alert alert-info">
+            <p>AI analysis could not be generated.</p>
+          </div>
+        `;
+            }
+
+            // Hide loader after content is rendered
+            if (loader) loader.style.display = "none";
+          }, 800);
+        }
+
+        // Event listeners
+        document
+          .getElementById("regenerateAiAnalysis")
+          ?.addEventListener("click", loadAIAnalysis);
+        document.addEventListener("DOMContentLoaded", loadAIAnalysis);
+
+        // Add event listener for the regenerate button
+        document
+          .getElementById("regenerateAiAnalysis")
+          ?.addEventListener("click", loadAIAnalysis);
+
+        // Initial load
+        document.addEventListener("DOMContentLoaded", loadAIAnalysis);
+
+        // Rest of your functions remain the same...
+        function updateStats(data) {
+          document.getElementById("total-visits").textContent =
+            data.total_visits.toLocaleString();
+          document.getElementById("unique-sites").textContent =
+            data.unique_domains.toLocaleString();
+          document.getElementById("first-visit").textContent = formatDate(
+            data.first_visit
+          );
+          document.getElementById("last-visit").textContent = formatDate(
+            data.last_visit
+          );
+          document.getElementById(
+            "analysis-period"
+          ).textContent = `From ${formatDate(data.first_visit)} to ${formatDate(
+            data.last_visit
+          )}`;
+        }
+
+        function formatDate(dateString) {
+          if (!dateString) return "-";
+          const date = new Date(dateString);
+          return (
+            date.toLocaleDateString() +
+            " " +
+            date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          );
+        }
+
+        function createCharts(data) {
+          // Create charts after a small delay to show loaders
+          setTimeout(() => {
+            // Top Sites Chart
+            createChart(
+              "topSitesChart",
+              "bar",
+              "Top Visited Sites",
+              Object.keys(data.top_sites),
+              Object.values(data.top_sites),
+              "rgba(54, 162, 235, 0.7)",
+              "rgba(54, 162, 235, 1)"
+            );
+
+            // Hourly Activity Chart
+            const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+            const hourlyData = hours.map(
+              (_, hour) => data.activity_by_hour[hour] || 0
+            );
+            createChart(
+              "hourlyActivityChart",
+              "line",
+              "Hourly Activity",
+              hours,
+              hourlyData,
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(75, 192, 192, 1)"
+            );
+
+            // Daily Activity Chart
+            const days = [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday",
+            ];
+            const dailyData = days.map((day) => data.activity_by_day[day] || 0);
+            createChart(
+              "dailyActivityChart",
+              "doughnut",
+              "Daily Activity",
+              days,
+              dailyData,
+              [
+                "rgba(255, 99, 132, 0.7)",
+                "rgba(54, 162, 235, 0.7)",
+                "rgba(255, 206, 86, 0.7)",
+                "rgba(75, 192, 192, 0.7)",
+                "rgba(153, 102, 255, 0.7)",
+                "rgba(255, 159, 64, 0.7)",
+                "rgba(199, 199, 199, 0.7)",
+              ]
+            );
+
+            // Categories Chart
+            createChart(
+              "categoriesChart",
+              "pie",
+              "Content Categories",
+              Object.keys(data.categories),
+              Object.values(data.categories),
+              [
+                // Vibrant primary colors
+                "rgba(106, 90, 205, 0.7)", // SlateBlue - rich purple-blue
+                "rgba(255, 105, 97, 0.7)", // Coral Pink - warm attention-grabber
+                "rgba(72, 209, 204, 0.7)", // Medium Turquoise - fresh teal
+                "rgba(255, 179, 71, 0.7)", // Sandy Brown - golden orange
+                "rgba(147, 112, 219, 0.7)", // Medium Purple - soft violet
+
+                // Modern secondary colors
+                "rgba(70, 130, 180, 0.7)", // Steel Blue - professional blue
+                "rgba(255, 99, 71, 0.7)", // Tomato - vibrant red-orange
+                "rgba(60, 179, 113, 0.7)", // Medium Sea Green - natural green
+                "rgba(238, 130, 238, 0.7)", // Violet - bright purple
+                "rgba(255, 165, 0, 0.7)", // Orange - warm accent
+
+                // Deep rich tones
+                "rgba(123, 104, 238, 0.7)", // Medium Slate Blue
+                "rgba(220, 20, 60, 0.7)", // Crimson
+                "rgba(0, 206, 209, 0.7)", // Dark Turquoise
+                "rgba(255, 140, 0, 0.7)", // Dark Orange
+                "rgba(138, 43, 226, 0.7)", // Blue Violet
+
+                // Soft pastel alternatives
+                "rgba(100, 149, 237, 0.7)", // Cornflower Blue
+                "rgba(240, 128, 128, 0.7)", // Light Coral
+                "rgba(64, 224, 208, 0.7)", // Turquoise
+                "rgba(250, 128, 114, 0.7)", // Salmon
+                "rgba(216, 191, 216, 0.7)", // Thistle
+              ]
+            );
+
+            // Daily Visits Chart
+            const sortedDates = Object.keys(data.daily_visits).sort();
+            const dailyVisitsData = sortedDates.map(
+              (date) => data.daily_visits[date]
+            );
+            createChart(
+              "dailyVisitsChart",
+              "line",
+              "Daily Visits",
+              sortedDates,
+              dailyVisitsData,
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(75, 192, 192, 1)"
+            );
+          }, 500);
+        }
+
+        function createChart(
+          elementId,
+          type,
+          title,
+          labels,
+          data,
+          bgColor,
+          borderColor
+        ) {
+          const canvas = document.getElementById(elementId);
+          const loader = canvas.parentElement.querySelector(".chart-loader");
+
+          const config = {
+            type: type,
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: title,
+                  data: data,
+                  backgroundColor: Array.isArray(bgColor) ? bgColor : bgColor,
+                  borderColor: borderColor,
+                  borderWidth: borderColor ? 1 : 0,
+                  fill: type === "line",
+                  tension: type === "line" ? 0.4 : undefined,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "right",
+                },
+                title: {
+                  display: true,
+                  text: title,
+                  font: {
+                    size: 16,
+                    weight: "600",
+                  },
+                  padding: {
+                    top: 10,
+                    bottom: 20,
+                  },
+                },
+                tooltip: {
+                  enabled: true,
+                  mode: "index",
+                  intersect: false,
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    precision: 0,
+                  },
+                  grid: {
+                    drawBorder: false,
+                  },
+                },
+                x: {
+                  grid: {
+                    display: false,
+                  },
+                },
+              },
+              elements: {
+                bar: {
+                  borderRadius: 4,
+                },
+              },
+            },
+          };
+
+          new Chart(canvas.getContext("2d"), config);
+
+          // Hide loader when chart is ready
+          if (loader) {
+            loader.style.display = "none";
+          }
+          canvas.style.display = "block";
+        }
+
+        function updateAdditionalElements(data) {
+          // Update top sites list
+          const topSitesList = document.getElementById("topSitesList");
+          const topSitesLoader = topSitesList
+            .closest(".card-section")
+            .querySelector(".card-loader");
+
+          setTimeout(() => {
+            topSitesList.innerHTML = "";
+            Object.entries(data.top_sites).forEach(([site, count]) => {
+              const li = document.createElement("li");
+              li.innerHTML = `
+                            <span class="text-truncate" style="max-width: 70%">${site}</span>
+                            <span class="site-count">${count.toLocaleString()}</span>
+                        `;
+              topSitesList.appendChild(li);
+            });
+
+            if (topSitesLoader) {
+              topSitesLoader.style.display = "none";
+            }
+          }, 500);
+
+          // Update categories table
+          const categoriesTable = document.getElementById("categoriesTable");
+          const categoriesLoader = categoriesTable
+            .closest(".card-section")
+            .querySelector(".card-loader");
+
+          setTimeout(() => {
+            categoriesTable.innerHTML = "";
+            const totalVisits = data.total_visits;
+            Object.entries(data.categories).forEach(([category, count]) => {
+              const percentage = ((count / totalVisits) * 100).toFixed(1);
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                            <td>${category}</td>
+                            <td>${count.toLocaleString()}</td>
+                            <td>${percentage}%</td>
+                        `;
+              categoriesTable.appendChild(row);
+            });
+
+            if (categoriesLoader) {
+              categoriesLoader.style.display = "none";
+            }
+          }, 500);
+
+          // Set up raw data toggle
+          document
+            .getElementById("toggleRawData")
+            .addEventListener("click", function () {
+              const container = document.getElementById("rawDataContainer");
+              if (container.style.display === "none") {
+                container.style.display = "block";
+                this.textContent = "Hide Data";
+              } else {
+                container.style.display = "none";
+                this.textContent = "Show Data";
+              }
+            });
+        }
+
+        function updateAIAnalysis(analysis) {
+          const container = document.getElementById("aiAnalysisContainer");
+          const loader = container
+            .closest(".card-section")
+            .querySelector(".card-loader");
+
+          setTimeout(() => {
+            if (analysis) {
+              container.innerHTML = `
+                            <div class="markdown-content">
+                                ${marked.parse(analysis)}
+                            </div>
+                        `;
+            } else {
+              container.innerHTML = `
+                            <div class="alert alert-info">
+                                <p>AI analysis could not be generated.</p>
+                            </div>
+                        `;
+            }
+
+            if (loader) {
+              loader.style.display = "none";
+            }
+          }, 800);
+        }
+
+        let currentPage = 1;
+        let totalPages = 1;
+        let allData = [];
+
+        function loadRawDataPreview(page = 1) {
+          const rawDataTable = document.getElementById("rawDataTable");
+          const rawDataLoader = rawDataTable
+            .closest(".card-section")
+            .querySelector(".card-loader");
+          const paginationControls =
+            document.getElementById("rawDataPagination");
+
+          // Show loading state
+          rawDataTable.innerHTML = `
+              <tr>
+                <td colspan="4" class="text-center py-3">
+                  <div class="spinner-border text-secondary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </td>
+              </tr>
+            `;
+
+          // Hide pagination during loading
+          if (paginationControls) paginationControls.style.display = "none";
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const filepath = urlParams.get("filepath");
+
+          // Only fetch data if not already loaded
+          if (allData.length === 0) {
+            fetch(
+              `/api/raw-data${
+                filepath ? `?filepath=${encodeURIComponent(filepath)}` : ""
+              }`
+            )
+              .then((response) => {
+                if (!response.ok)
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+              })
+              .then((data) => {
+                if (data.status === "success") {
+                  allData = data.data;
+                  totalPages = Math.ceil(allData.length / 100);
+                  renderTable(page);
+                } else {
+                  throw new Error(data.message || "Failed to load data");
+                }
+              })
+              .catch((error) => {
+                rawDataTable.innerHTML = `
+                    <tr>
+                      <td colspan="4" class="text-center text-danger py-3">
+                        ${error.message}
+                      </td>
+                    </tr>
+                  `;
+                console.error("Error loading raw data:", error);
+              })
+              .finally(() => {
+                // Hide loader after everything else
+                if (rawDataLoader) rawDataLoader.style.display = "none";
+              });
+          } else {
+            // If already loaded
+            renderTable(page);
+            if (rawDataLoader) rawDataLoader.style.display = "none"; // Hide loader
+          }
+        }
+
+        function renderTable(page) {
+          const rawDataTable = document.getElementById("rawDataTable");
+          const paginationControls =
+            document.getElementById("rawDataPagination");
+
+          currentPage = page;
+          const startIndex = (page - 1) * 100;
+          const endIndex = startIndex + 100;
+          const pageData = allData.slice(startIndex, endIndex);
+
+          rawDataTable.innerHTML = "";
+
+          // Info row
+          const infoRow = document.createElement("tr");
+          infoRow.innerHTML = `
+              <td colspan="4" class="text-center text-muted py-2">
+                Showing ${startIndex + 1}-${Math.min(
+            endIndex,
+            allData.length
+          )} of ${allData.length} entries
+              </td>
+            `;
+          rawDataTable.appendChild(infoRow);
+
+          // Data rows
+          pageData.forEach((entry) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${formatDate(entry.visit_time)}</td>
+                <td class="text-truncate" style="max-width: 200px" title="${
+                  entry.title || "Untitled"
+                }">
+                  ${entry.title || "Untitled"}
+                </td>
+                <td class="text-truncate" style="max-width: 150px" title="${
+                  entry.url
+                }">
+                  ${entry.domain}
+                </td>
+                <td>${entry.visit_count}</td>
+              `;
+            rawDataTable.appendChild(row);
+          });
+
+          if (allData.length === 0) {
+            rawDataTable.innerHTML = `
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-3">
+                    No browsing history data found in the file
+                  </td>
+                </tr>
+              `;
+          }
+
+          // Show pagination only if more than 100 entries
+          if (paginationControls) {
+            paginationControls.style.display =
+              allData.length > 100 ? "block" : "none";
+
+            document.getElementById(
+              "currentPageInfo"
+            ).textContent = `Page ${page} of ${totalPages}`;
+
+            const prevBtn = document.getElementById("prevPageBtn");
+            prevBtn.disabled = page === 1;
+            prevBtn.onclick = () => loadRawDataPreview(page - 1);
+
+            const nextBtn = document.getElementById("nextPageBtn");
+            nextBtn.disabled = page === totalPages;
+            nextBtn.onclick = () => loadRawDataPreview(page + 1);
+          }
+        }
+
+        // Initialize on page load
+        document.addEventListener("DOMContentLoaded", () =>
+          loadRawDataPreview(1)
+        );
+
+        function formatDate(dateString) {
+          if (!dateString) return "";
+          const date = new Date(dateString);
+          const day = String(date.getDate()).padStart(2, "0");
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const year = date.getFullYear();
+          return `${day}/${month}/${year}`;
+        }
+      });
+    </script>
+  </body>
+</html>
