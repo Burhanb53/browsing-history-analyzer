@@ -293,7 +293,7 @@ def get_analytics():
     processed_data = process_history_data(raw_data)
     
     # Print analysis to console
-    print_analysis_report(processed_data)
+    # print_analysis_report(processed_data)
     
     # Generate analytics for frontend
     df = pd.DataFrame(processed_data)
