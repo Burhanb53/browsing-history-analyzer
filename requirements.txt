@@ -1,0 +1,8 @@
+Flask
+pandas
+python-dotenv
+markdown
+numpy
+Flask-Session
+Werkzeug
+google-generativeai
